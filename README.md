@@ -261,3 +261,11 @@ trademark of Proton AG.
 - The rotator confirms each new exit IP with a request through the proxy itself
   (`IP_ECHO_URLS`, default ipify/icanhazip/ifconfig.me). gluetun's own public-IP lookup
   starts failing after many rotations, which used to make `/rotate` hang for minutes.
+
+## Running on a server (Dokploy)
+
+`compose.server.yaml` is the server variant: no host ports, control-API auth from
+`CONTROL_API_KEY` (no `gluetun/auth/config.toml` needed), and both services on the external
+`dokploy-network`, reachable by other apps as `tunnelhop-gluetun:8888` and
+`tunnelhop-rotator:8080`. Use a separate Proton WireGuard config per host: the same key on
+two machines makes both tunnels drop.

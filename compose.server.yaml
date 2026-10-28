@@ -1,0 +1,57 @@
+# Server variant (e.g. Dokploy): no ports on the host, control-API auth from an env var
+# instead of gluetun/auth/config.toml, and both services on the shared `dokploy-network`
+# so other apps reach them as `tunnelhop-gluetun:8888` (proxy) and `tunnelhop-rotator:8080`.
+#
+# Env: WIREGUARD_PRIVATE_KEY (a WireGuard config of its own; one key per host),
+# PROXY_USER, PROXY_PASSWORD, CONTROL_API_KEY, ROTATOR_API_KEY, optional SERVER_COUNTRIES.
+name: tunnelhop
+
+services:
+  gluetun:
+    image: qmcgaw/gluetun:v3.41.3
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      VPN_SERVICE_PROVIDER: protonvpn
+      VPN_TYPE: ${VPN_TYPE:-wireguard}
+      WIREGUARD_PRIVATE_KEY: ${WIREGUARD_PRIVATE_KEY:?set WIREGUARD_PRIVATE_KEY}
+      SERVER_COUNTRIES: ${SERVER_COUNTRIES:-Netherlands}
+      HTTPPROXY: "on"
+      HTTPPROXY_LISTENING_ADDRESS: ":8888"
+      HTTPPROXY_USER: ${PROXY_USER:?set PROXY_USER}
+      HTTPPROXY_PASSWORD: ${PROXY_PASSWORD:?set PROXY_PASSWORD}
+      HTTPPROXY_STEALTH: "on"
+      HTTP_CONTROL_SERVER_ADDRESS: ":8000"
+      # Only reachable on the private networks below, so one role for all routes is fine.
+      HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE: '{"auth":"apikey","apikey":"${CONTROL_API_KEY:?set CONTROL_API_KEY}"}'
+      TZ: Europe/Amsterdam
+    networks:
+      default: {}
+      dokploy-network:
+        aliases: [tunnelhop-gluetun]
+    restart: unless-stopped
+
+  rotator:
+    build: ./rotator
+    environment:
+      GLUETUN_URL: http://gluetun:8000
+      GLUETUN_API_KEY: ${CONTROL_API_KEY}
+      ROTATOR_API_KEY: ${ROTATOR_API_KEY:?set ROTATOR_API_KEY}
+      ROTATE_MAX_ATTEMPTS: ${ROTATE_MAX_ATTEMPTS:-6}
+      ROTATE_REQUIRE_NEW_SUBNET: ${ROTATE_REQUIRE_NEW_SUBNET:-on}
+      ROTATE_ATTEMPT_TIMEOUT: ${ROTATE_ATTEMPT_TIMEOUT:-30}
+      PROXY_URL: http://${PROXY_USER}:${PROXY_PASSWORD}@gluetun:8888
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    networks:
+      default: {}
+      dokploy-network:
+        aliases: [tunnelhop-rotator]
+    restart: unless-stopped
+
+networks:
+  dokploy-network:
+    external: true
