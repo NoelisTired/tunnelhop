@@ -26,6 +26,17 @@ SUBNET_PREFIX_V4 = int(os.environ.get("ROTATE_SUBNET_PREFIX_V4", "24"))
 SUBNET_PREFIX_V6 = int(os.environ.get("ROTATE_SUBNET_PREFIX_V6", "64"))
 POLL_INTERVAL = 1.0
 REQUEST_TIMEOUT = 10
+# The exit IP is checked by a request through the proxy itself: gluetun's own public-IP
+# lookup depends on third-party services that start refusing after many rotations, which
+# made rotations hang for minutes while the tunnel was already up.
+PROXY_URL = os.environ.get("PROXY_URL", "")
+IP_ECHO_URLS = [
+    u.strip()
+    for u in os.environ.get(
+        "IP_ECHO_URLS", "https://api.ipify.org,https://icanhazip.com,https://ifconfig.me/ip"
+    ).split(",")
+    if u.strip()
+]
 
 rotate_lock = threading.Lock()
 
@@ -50,8 +61,43 @@ def gluetun(method: str, path: str, body: dict | None = None) -> dict:
     return json.loads(raw) if raw else {}
 
 
+def ip_via_proxy() -> str | None:
+    """Exit IP as seen by the internet, asked through the proxy; None if unreachable."""
+    if not PROXY_URL:
+        return None
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler({"http": PROXY_URL, "https": PROXY_URL})
+    )
+    for url in IP_ECHO_URLS:
+        try:
+            with opener.open(url, timeout=REQUEST_TIMEOUT) as resp:
+                ip = resp.read().decode().strip()
+            ipaddress.ip_address(ip)
+            return ip
+        except (urllib.error.URLError, TimeoutError, ValueError, OSError):
+            continue
+    return None
+
+
+def gluetun_ip_info() -> dict:
+    try:
+        return gluetun("GET", "/v1/publicip/ip")
+    except GluetunError:
+        return {}
+
+
 def current_ip() -> dict:
-    return gluetun("GET", "/v1/publicip/ip")
+    """Exit IP (verified through the proxy when configured) plus gluetun's location info."""
+    info = gluetun_ip_info()
+    ip = ip_via_proxy()
+    if ip:
+        if info.get("public_ip") != ip:
+            # gluetun's info is stale or missing; don't report another IP's location
+            info = {}
+        info["public_ip"] = ip
+    if not info.get("public_ip"):
+        raise GluetunError("exit IP unknown: proxy and gluetun lookups both failed")
+    return info
 
 
 def set_vpn_status(status: str) -> None:
@@ -66,6 +112,7 @@ def wait_for_new_ip(old_ip: str) -> dict | None:
             info = current_ip()
         except GluetunError:
             continue
+        print(f"rotate: exit ip now {info.get('public_ip')}", flush=True)
         ip = info.get("public_ip")
         if ip and ip != old_ip:
             return info
