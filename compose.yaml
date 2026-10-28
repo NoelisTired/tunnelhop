@@ -48,6 +48,8 @@ services:
       ROTATE_MAX_ATTEMPTS: ${ROTATE_MAX_ATTEMPTS:-6}
       ROTATE_REQUIRE_NEW_SUBNET: ${ROTATE_REQUIRE_NEW_SUBNET:-on}
       ROTATE_ATTEMPT_TIMEOUT: ${ROTATE_ATTEMPT_TIMEOUT:-30}
+      # Verify the exit IP through the proxy itself instead of gluetun's public-IP lookup.
+      PROXY_URL: http://${PROXY_USER}:${PROXY_PASSWORD}@gluetun:8888
     ports:
       - "${BIND_ADDR:-127.0.0.1}:${ROTATOR_PORT:-8081}:8080"
     depends_on:

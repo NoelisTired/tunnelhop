@@ -255,3 +255,9 @@ trademark of Proton AG.
 ## License
 
 [MIT](LICENSE)
+
+## Notes
+
+- The rotator confirms each new exit IP with a request through the proxy itself
+  (`IP_ECHO_URLS`, default ipify/icanhazip/ifconfig.me). gluetun's own public-IP lookup
+  starts failing after many rotations, which used to make `/rotate` hang for minutes.
