@@ -2,10 +2,12 @@
 
 GET  /health  -> liveness, no auth
 GET  /ip      -> current Proton exit IP + location
-POST /rotate  -> reconnect to a (random) other Proton server until the exit IP changes
+POST /rotate  -> reconnect to a (random) other Proton server until the exit IP changes,
+                 and by default until it lands in a different subnet (/24 for IPv4)
 """
 
 import hmac
+import ipaddress
 import json
 import os
 import threading
@@ -17,8 +19,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 GLUETUN_URL = os.environ.get("GLUETUN_URL", "http://gluetun:8000").rstrip("/")
 GLUETUN_API_KEY = os.environ["GLUETUN_API_KEY"]
 ROTATOR_API_KEY = os.environ["ROTATOR_API_KEY"]
-MAX_ATTEMPTS = int(os.environ.get("ROTATE_MAX_ATTEMPTS", "3"))
+MAX_ATTEMPTS = int(os.environ.get("ROTATE_MAX_ATTEMPTS", "6"))
 ATTEMPT_TIMEOUT = float(os.environ.get("ROTATE_ATTEMPT_TIMEOUT", "30"))
+REQUIRE_NEW_SUBNET = os.environ.get("ROTATE_REQUIRE_NEW_SUBNET", "on") == "on"
+SUBNET_PREFIX_V4 = int(os.environ.get("ROTATE_SUBNET_PREFIX_V4", "24"))
+SUBNET_PREFIX_V6 = int(os.environ.get("ROTATE_SUBNET_PREFIX_V6", "64"))
 POLL_INTERVAL = 1.0
 REQUEST_TIMEOUT = 10
 
@@ -67,14 +72,37 @@ def wait_for_new_ip(old_ip: str) -> dict | None:
     return None
 
 
+def subnet_of(ip: str) -> ipaddress.IPv4Network | ipaddress.IPv6Network | None:
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return None
+    prefix = SUBNET_PREFIX_V4 if addr.version == 4 else SUBNET_PREFIX_V6
+    return ipaddress.ip_network(f"{addr}/{prefix}", strict=False)
+
+
+def in_new_subnet(old_ip: str, new_ip: str) -> bool:
+    old_net = subnet_of(old_ip)
+    return old_net is None or ipaddress.ip_address(new_ip) not in old_net
+
+
 def rotate() -> dict:
     old_ip = current_ip().get("public_ip", "")
+    last_ip = old_ip
+    last_info = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
         set_vpn_status("stopped")
         set_vpn_status("running")
-        info = wait_for_new_ip(old_ip)
-        if info:
-            return {"old_ip": old_ip, "attempts": attempt, **info}
+        info = wait_for_new_ip(last_ip)
+        if not info:
+            continue
+        last_ip, last_info = info["public_ip"], info
+        new_subnet = in_new_subnet(old_ip, last_ip)
+        if new_subnet or not REQUIRE_NEW_SUBNET:
+            return {"old_ip": old_ip, "attempts": attempt, "new_subnet": new_subnet, **info}
+    if last_info:
+        # IP changed, but every server we got was in the old subnet: still better than nothing
+        return {"old_ip": old_ip, "attempts": MAX_ATTEMPTS, "new_subnet": False, **last_info}
     raise GluetunError(f"exit IP did not change after {MAX_ATTEMPTS} attempts")
 
 

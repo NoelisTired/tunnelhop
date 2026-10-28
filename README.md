@@ -55,8 +55,10 @@ directly with `network_mode: "service:gluetun"`.
 
 - During a rotation (a few seconds) requests through the proxy fail. Pause your
   scraper, or retry, around `/rotate`. Concurrent rotate calls get a 502.
-- Rotation picks a random server from the pool and retries if the IP stays the
-  same (`ROTATE_MAX_ATTEMPTS`). A bigger pool (more countries) gives more variety.
+- Rotation picks a random server from the pool and retries until the new IP is
+  outside the old /24 (`ROTATE_REQUIRE_NEW_SUBNET=on`, max `ROTATE_MAX_ATTEMPTS`).
+  If that never happens you still get the new IP, with `"new_subnet": false` in
+  the response. A bigger pool (more countries) gives more variety.
 - One container = one exit IP at a time. For parallel IPs, run multiple gluetun
   instances (each counts as one Proton device).
 - `BIND_ADDR=127.0.0.1` keeps the ports local. Set it to your LAN IP to use the
