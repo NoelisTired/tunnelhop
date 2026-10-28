@@ -1,0 +1,55 @@
+name: protonvpn-proxy
+
+services:
+  # VPN tunnel to ProtonVPN. Only traffic that goes through this container's
+  # proxy (or containers sharing its network) leaves via a Proton IP. The host
+  # network is untouched.
+  gluetun:
+    image: qmcgaw/gluetun:v3.41.3
+    container_name: protonvpn-gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      VPN_SERVICE_PROVIDER: protonvpn
+      VPN_TYPE: ${VPN_TYPE:-wireguard}
+      WIREGUARD_PRIVATE_KEY: ${WIREGUARD_PRIVATE_KEY:-}
+      OPENVPN_USER: ${OPENVPN_USER:-}
+      OPENVPN_PASSWORD: ${OPENVPN_PASSWORD:-}
+      SERVER_COUNTRIES: ${SERVER_COUNTRIES:-Netherlands}
+      SERVER_CITIES: ${SERVER_CITIES:-}
+      FREE_ONLY: ${FREE_ONLY:-off}
+      # HTTP(S) proxy for your scraper
+      HTTPPROXY: "on"
+      HTTPPROXY_LISTENING_ADDRESS: ":8888"
+      HTTPPROXY_USER: ${PROXY_USER}
+      HTTPPROXY_PASSWORD: ${PROXY_PASSWORD}
+      HTTPPROXY_STEALTH: "on"
+      # Control API, used by the rotator. Auth roles live in gluetun/auth/config.toml
+      HTTP_CONTROL_SERVER_ADDRESS: ":8000"
+      # Lets the tunnelled side still reach your LAN (e.g. a local scrape target)
+      FIREWALL_OUTBOUND_SUBNETS: ${LAN_SUBNETS:-}
+      TZ: Europe/Amsterdam
+    volumes:
+      - ./gluetun/auth/config.toml:/gluetun/auth/config.toml:ro
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${PROXY_PORT:-8888}:8888"
+    restart: unless-stopped
+
+  # Small API to check the current exit IP and rotate to a new Proton server.
+  rotator:
+    build: ./rotator
+    container_name: protonvpn-rotator
+    environment:
+      GLUETUN_URL: http://gluetun:8000
+      GLUETUN_API_KEY: ${CONTROL_API_KEY}
+      ROTATOR_API_KEY: ${ROTATOR_API_KEY}
+      ROTATE_MAX_ATTEMPTS: ${ROTATE_MAX_ATTEMPTS:-3}
+      ROTATE_ATTEMPT_TIMEOUT: ${ROTATE_ATTEMPT_TIMEOUT:-30}
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${ROTATOR_PORT:-8081}:8080"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    restart: unless-stopped

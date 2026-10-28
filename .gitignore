@@ -1,0 +1,4 @@
+.env
+.env.tmp
+gluetun/auth/config.toml
+__pycache__/
