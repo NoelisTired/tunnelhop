@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 400" role="img" aria-label="tunnelhop: rotate VPN exit IPs from one local proxy">
+  <defs>
+    <linearGradient id="bbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f0d2e"/>
+      <stop offset="1" stop-color="#3b1a7a"/>
+    </linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1e1b4b"/>
+      <stop offset="1" stop-color="#5b21b6"/>
+    </linearGradient>
+    <linearGradient id="hop" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="1" stop-color="#a3e635"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="400" rx="32" fill="url(#bbg)"/>
+
+  <!-- faint IP dots in the background -->
+  <g fill="#ffffff" opacity="0.07">
+    <circle cx="980" cy="70" r="6"/><circle cx="1060" cy="120" r="4"/><circle cx="1180" cy="90" r="5"/>
+    <circle cx="1120" cy="300" r="6"/><circle cx="1210" cy="250" r="4"/><circle cx="920" cy="330" r="5"/>
+  </g>
+
+  <g transform="translate(96 72) scale(0.5)">
+    <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+    <g fill="none" stroke="#ffffff" stroke-linecap="butt">
+      <path d="M96 400 V300 a160 160 0 0 1 320 0 V400" stroke-width="30" opacity="0.95"/>
+      <path d="M150 400 V306 a106 106 0 0 1 212 0 V400" stroke-width="22" opacity="0.55"/>
+      <path d="M202 400 V312 a54 54 0 0 1 108 0 V400" stroke-width="16" opacity="0.3"/>
+    </g>
+    <rect x="72" y="398" width="368" height="14" rx="7" fill="#ffffff" opacity="0.95"/>
+    <path d="M256 372 C 270 210, 360 112, 438 128" fill="none" stroke="url(#hop)"
+          stroke-width="18" stroke-linecap="round" stroke-dasharray="2 34"/>
+    <circle cx="256" cy="372" r="22" fill="#5eead4"/>
+    <circle cx="438" cy="128" r="30" fill="#a3e635"/>
+    <circle cx="438" cy="128" r="12" fill="#1e1b4b"/>
+  </g>
+
+  <text x="400" y="200" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif"
+        font-size="104" font-weight="800" fill="#ffffff" letter-spacing="-3">tunnel<tspan fill="url(#hop)">hop</tspan></text>
+  <text x="404" y="262" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif"
+        font-size="34" font-weight="500" fill="#c4b5fd">Rotate VPN exit IPs from one local proxy.</text>
+  <text x="404" y="306" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif"
+        font-size="26" font-weight="400" fill="#a5a3c9">Your host network stays untouched.</text>
+</svg>

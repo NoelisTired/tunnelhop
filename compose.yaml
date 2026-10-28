@@ -1,4 +1,4 @@
-name: protonvpn-proxy
+name: tunnelhop
 
 services:
   # VPN tunnel to ProtonVPN. Only traffic that goes through this container's
@@ -6,7 +6,7 @@ services:
   # network is untouched.
   gluetun:
     image: qmcgaw/gluetun:v3.41.3
-    container_name: protonvpn-gluetun
+    container_name: tunnelhop-gluetun
     cap_add:
       - NET_ADMIN
     devices:
@@ -40,7 +40,7 @@ services:
   # Small API to check the current exit IP and rotate to a new Proton server.
   rotator:
     build: ./rotator
-    container_name: protonvpn-rotator
+    container_name: tunnelhop-rotator
     environment:
       GLUETUN_URL: http://gluetun:8000
       GLUETUN_API_KEY: ${CONTROL_API_KEY}

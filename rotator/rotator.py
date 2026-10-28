@@ -107,7 +107,7 @@ def rotate() -> dict:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "protonvpn-rotator"
+    server_version = "tunnelhop-rotator"
 
     def _send(self, code: int, payload: dict) -> None:
         body = json.dumps(payload).encode()

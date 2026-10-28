@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="tunnelhop logo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1e1b4b"/>
+      <stop offset="1" stop-color="#5b21b6"/>
+    </linearGradient>
+    <linearGradient id="hop" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="1" stop-color="#a3e635"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+
+  <!-- tunnel: three nested arches -->
+  <g fill="none" stroke="#ffffff" stroke-linecap="butt">
+    <path d="M96 400 V300 a160 160 0 0 1 320 0 V400" stroke-width="30" opacity="0.95"/>
+    <path d="M150 400 V306 a106 106 0 0 1 212 0 V400" stroke-width="22" opacity="0.55"/>
+    <path d="M202 400 V312 a54 54 0 0 1 108 0 V400" stroke-width="16" opacity="0.3"/>
+  </g>
+  <rect x="72" y="398" width="368" height="14" rx="7" fill="#ffffff" opacity="0.95"/>
+
+  <!-- hop: dashed arc leaping out of the tunnel to a new exit -->
+  <path d="M256 372 C 270 210, 360 112, 438 128" fill="none" stroke="url(#hop)"
+        stroke-width="18" stroke-linecap="round" stroke-dasharray="2 34"/>
+  <circle cx="256" cy="372" r="22" fill="#5eead4"/>
+  <circle cx="438" cy="128" r="30" fill="#a3e635"/>
+  <circle cx="438" cy="128" r="12" fill="#1e1b4b"/>
+</svg>
